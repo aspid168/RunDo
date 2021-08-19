@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:paddingVertical="@dimen/bordersBetweenElements"
+    android:background="@color/white">
+
+    <TextView
+        android:id="@+id/dateAndTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/dateAndTime"
+        android:textSize="@dimen/textSize"
+        android:textColor="@color/black"
+        app:layout_constraintStart_toStartOf="@id/dateAndTimeDetails"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="@id/dateAndTimeDetails"/>
+
+    <TextView
+        android:id="@+id/dateAndTimeDetails"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/textSize"
+        android:textColor="@color/black"
+        app:layout_constraintTop_toBottomOf="@id/dateAndTime"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/distanceDetails"/>
+
+    <TextView
+        android:id="@+id/distance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/distance"
+        android:textSize="@dimen/textSize"
+        android:textColor="@color/black"
+        app:layout_constraintStart_toStartOf="@id/distanceDetails"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="@id/distanceDetails"/>
+
+    <TextView
+        android:id="@+id/distanceDetails"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/textSize"
+        android:textColor="@color/black"
+        app:layout_constraintStart_toEndOf="@id/dateAndTimeDetails"
+        app:layout_constraintTop_toBottomOf="@id/distance"
+        app:layout_constraintEnd_toStartOf="@id/timeDetails"/>
+
+    <TextView
+        android:id="@+id/time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/time"
+        android:textSize="@dimen/textSize"
+        android:textColor="@color/black"
+        app:layout_constraintStart_toStartOf="@id/timeDetails"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="@id/timeDetails"/>
+
+    <TextView
+        android:id="@+id/timeDetails"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/textSize"
+        android:textColor="@color/black"
+        app:layout_constraintStart_toEndOf="@id/distanceDetails"
+        app:layout_constraintTop_toBottomOf="@id/time"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

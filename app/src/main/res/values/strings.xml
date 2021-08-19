@@ -1,3 +1,35 @@
 <resources>
     <string name="app_name">RunDo</string>
+
+    <string name="EmailHint">email</string>
+    <string name="passwordHint">password</string>
+    <string name="passwordRepeatHint">repeat password</string>
+    <string name="loginButton">Login</string>
+    <string name="loginButtonUnderLine"><u>Login</u></string>
+    <string name="firstNameHintButton">first name</string>
+    <string name="lastNameHint">last name</string>
+    <string name="registrationButton">Registration</string>
+    <string name="registrationButtonUnderLine"><u>Registration</u></string>
+    <string name="invalidEmailError">invalid email error</string>
+    <string name="repeatPasswordMatchError">repeat password match error</string>
+    <string name="dateAndTime">date and time</string>
+    <string name="distance">distance</string>
+    <string name="time">time</string>
+    <string name="start">start</string>
+    <string name="finish">finish</string>
+    <string name="distanceDetails">%d m</string>
+    <string name="timeDetails">"%d min, %d sec"</string>
+    <string name="timer">"%d min, %d sec, %d mls"</string>
+    <string name="emptyTrackList">Tracks list is empty</string>
+    <string name="logOut">Log out</string>
+    <string name="notifications">notifications</string>
+
+    <string name="toMainPage">back to main page</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="save">save</string>
+    <string name="delete">delete</string>
+    <string name="edit">edit</string>
+
+
 </resources>

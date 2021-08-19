@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="marginHorizontal">30dp</dimen>
+    <dimen name="bordersBetweenElements">20dp</dimen>
+    <dimen name="textSize">20sp</dimen>
+</resources>
