@@ -1,66 +1,37 @@
 package ru.study.rundo
 
-import android.content.Context
-import android.content.Context.MODE_PRIVATE
-import android.util.Log
-import android.widget.Toast
-import bolts.CancellationToken
-import bolts.CancellationTokenSource
 import bolts.Task
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import ru.study.rundo.activities.MainActivity
 import ru.study.rundo.interfaces.*
 import ru.study.rundo.models.*
 
-class WorkWithServer(context: Context) {
-
-    companion object{
-        private const val TOKEN_ERROR = "Login again please"
-    }
-
-    //"token":"117:c2ef0587602023c3175fc4750a6e4493cad48ebf"
-    //"aspid168@gmail.com", "aspid", "aspid", "aspid168"
-
-    // test@gmail.com, test, test, test
-    // token = 159:1332ccecd5cf651af95a3b76ad977e50e1a0c8ae
-
-    // workWithServer.registration("qwe@gmail.com", "qwe", "qwe", "qwe")
-    // token = "161:7ddd265adfe81a608e0708d9dd29cf9f9036d39c"
-
-
-    private val sharedPreferences = context.getSharedPreferences(MainActivity.SHARED_PREFERENCES, MODE_PRIVATE)
-
-    private val token = context.getSharedPreferences(MainActivity.SHARED_PREFERENCES, MODE_PRIVATE)
-        .getString(MainActivity.TOKEN_EXTRA, null)
+object WorkWithServer {
+    const val TOKEN_ERROR = "Login again please"
 
     private var listenerSave: SaveTrackResultHandler? = null
-
-
     fun addListenerSave(saveTrackResultHandler: SaveTrackResultHandler) {
         listenerSave = saveTrackResultHandler
     }
 
-    private var listenerLogin: Handler<TokenInfo>? = null
-    fun addListenerLogin(handler: Handler<TokenInfo>) {
-        listenerLogin = handler
+    private var listenerLogin: ServerHandler<TokenInfo>? = null
+    var isLoginFinished: Boolean? = null
+    fun addListenerLogin(serverHandler: ServerHandler<TokenInfo>?) {
+        listenerLogin = serverHandler
     }
 
-    private var listenerRegistration: Handler<TokenInfo>? = null
-    fun addListenerRegistration(handler: Handler<TokenInfo>) {
-        listenerRegistration = handler
+    private var listenerRegistration: ServerHandler<TokenInfo>? = null
+    var isRegistrationFinished: Boolean? = null
+    fun addListenerRegistration(serverHandler: ServerHandler<TokenInfo>?) {
+        listenerRegistration = serverHandler
     }
 
-    var listenerGetTracks: Handler<TracksList>? = null
-    fun addListenerGetTracks(handler: Handler<TracksList>) {
-        listenerGetTracks = handler
+    var listenerGetTracks: ServerHandler<TracksList>? = null
+    var isGetTracksFinished: Boolean? = null
+    fun addListenerGetTracks(serverHandler: ServerHandler<TracksList>?) {
+        listenerGetTracks = serverHandler
     }
-
-//    private var listenerGetPoints: GetPointsHandler? = null
-//    fun addListenerGetPoints(getTracksResultHandler: GetPointsHandler) {
-//        listenerGetPoints = getTracksResultHandler
-//    }
 
     fun registration(
         email: String,
@@ -68,6 +39,7 @@ class WorkWithServer(context: Context) {
         lastName: String,
         password: String
     ): Task<TokenInfo> {
+        isRegistrationFinished = false
         val retrofit = SingletonClass.retrofit
         return Task.callInBackground {
             val json = JSONObject()
@@ -76,41 +48,48 @@ class WorkWithServer(context: Context) {
                 .put("lastName", lastName)
                 .put("password", password).toString().toRequestBody()
             retrofit.register(json).execute().body()
-        }.continueWith {
-            if (!it.isFaulted) {
-                when (it.result?.status) {
-                    "ok" -> it.result?.let { token -> listenerRegistration?.onSuccess(token) }
-                    "error" -> it.result?.code?.let { code -> listenerRegistration?.onError(code) }
+        }.continueWith({
+            if (listenerRegistration != null) {
+                if (!it.isFaulted) {
+                    when (it.result?.status) {
+                        "ok" -> it.result?.let { token -> listenerRegistration?.onSuccess(token) }
+                        "error" -> it.result?.code?.let { code -> listenerRegistration?.onError(code) }
+                    }
+                } else {
+                    listenerRegistration?.onError()
                 }
-            } else {
-                listenerRegistration?.onError()
             }
+            isRegistrationFinished = null
             null
-        }
+        }, Task.UI_THREAD_EXECUTOR)
     }
 
     fun login(email: String, password: String): Task<TokenInfo> {
         val retrofit = SingletonClass.retrofit
         return Task.callInBackground {
+            isLoginFinished = false
             val json = JSONObject()
                 .put("email", email)
                 .put("password", password).toString().toRequestBody()
             retrofit.login(json).execute().body()
         }.continueWith({
-            if (!it.isFaulted) {
-                when (it.result?.status) {
-                    "ok" -> it.result?.let { token -> listenerLogin?.onSuccess(token) }
-                    "error" -> it.result?.code?.let { code -> listenerLogin?.onError(code) }
+            if (listenerLogin != null) {
+                if (!it.isFaulted) {
+                    when (it.result?.status) {
+                        "ok" -> it.result?.let { token -> listenerLogin?.onSuccess(token) }
+                        "error" -> it.result?.code?.let { code -> listenerLogin?.onError(code) }
+                    }
+                } else {
+                    listenerLogin?.onError()
                 }
-            } else {
-                listenerLogin?.onError()
             }
+            isLoginFinished = null
             null
         }, Task.UI_THREAD_EXECUTOR)
     }
 
 
-    fun save(track: Track): Task<Int> {
+    fun save(track: Track, token: String): Task<Int> {
         val retrofit = SingletonClass.retrofit
         return Task.callInBackground {
             val json = JSONObject(SingletonClass.gson.toJson(track))
@@ -128,9 +107,10 @@ class WorkWithServer(context: Context) {
         }
     }
 
-    fun getTracks(): Task<TracksList> {
+    fun getTracks(token: String): Task<TracksList> {
         val retrofit = SingletonClass.retrofit
         return Task.callInBackground {
+            isGetTracksFinished = false
             val json = JSONObject()
                 .put("token", token)
                 .toString()
@@ -154,14 +134,17 @@ class WorkWithServer(context: Context) {
             }
             it.result
         }.continueWith({
-            if (!it.isFaulted) {
-                when (it.result?.status) {
-                    "ok" -> it.result?.let { result -> listenerGetTracks?.onSuccess(result) }
-                    "error" -> listenerGetTracks?.onError(TOKEN_ERROR)
+            if (listenerGetTracks != null) {
+                if (!it.isFaulted) {
+                    when (it.result?.status) {
+                        "ok" -> it.result?.let { result -> listenerGetTracks?.onSuccess(result) }
+                        "error" -> listenerGetTracks?.onError(TOKEN_ERROR)
+                    }
+                } else {
+                    listenerGetTracks?.onError("Internet connection problems")
                 }
-            } else {
-                listenerGetTracks?.onError("Internet connection problems")
             }
+            isGetTracksFinished = null
             null
         }, Task.UI_THREAD_EXECUTOR)
     }
@@ -171,28 +154,5 @@ class WorkWithServer(context: Context) {
         return Task.callInBackground {
             retrofit.getPoints(json).execute().body()
         }
-    }
-
-// qwe
-
-    fun task(context: Context): Task<Void>? {
-        return Task.callInBackground {
-            addListenerGetTracks(object : Handler<TracksList>  {
-                override fun onSuccess(result: TracksList) {
-                    val db = TracksDatabase(context)
-                    db.refreshData(result.tracks)
-                }
-
-                override fun onError(error: String) {
-                    Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
-                    if (error == TOKEN_ERROR) {
-                        sharedPreferences.edit().putBoolean(MainActivity.IS_TOKEN_VALID, false).apply()
-                    }
-                }
-            })
-            getTracks()
-            null
-        }
-//            , Task.UI_THREAD_EXECUTOR, CancellationTokenSource().token)
     }
 }
