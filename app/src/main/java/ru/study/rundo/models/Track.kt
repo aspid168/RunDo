@@ -7,7 +7,7 @@ import java.io.Serializable
 
 data class Track(
     @SerializedName("id")
-    val serverId: Int?,
+    var serverId: Int?,
     var beginsAt: Long,
     var time: Long,
     var distance: Float,

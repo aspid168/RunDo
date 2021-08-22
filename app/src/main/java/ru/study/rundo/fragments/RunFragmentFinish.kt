@@ -1,37 +1,26 @@
 package ru.study.rundo.fragments
 
-import android.Manifest
-import android.app.Activity
+import android.animation.AnimatorInflater
+import android.animation.ObjectAnimator
 import android.content.*
-import android.content.Context.BIND_AUTO_CREATE
-import android.content.Context.MODE_PRIVATE
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
-import android.widget.Toast
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
+import androidx.core.animation.doOnEnd
 import androidx.fragment.app.Fragment
 import ru.study.rundo.LocationService
 import ru.study.rundo.R
+import ru.study.rundo.activities.RunActivity
 import ru.study.rundo.interfaces.RunActivitySwitcher
 import java.util.concurrent.TimeUnit
 
 class RunFragmentFinish : Fragment() {
-    companion object {
-        const val DISTANCE_EXTRA = "DISTANCE_EXTRA"
-        const val TIME_EXTRA = "TIME_EXTRA"
-        const val SHARED_PREFERENCES = "SHARED_PREFERENCES"
-        const val LOCATION_SERVICE_IS_RUNNING = "LOCATION_SERVICE_IS_RUNNING"
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -46,21 +35,43 @@ class RunFragmentFinish : Fragment() {
     private lateinit var handler: Handler
     private lateinit var broadcastReceiverReceiveData: BroadcastReceiver
     private lateinit var broadcastReceiverOnError: BroadcastReceiver
-
     private lateinit var locationService: LocationService
-
     private lateinit var serviceConnection: ServiceConnection
+    private lateinit var animation: ObjectAnimator
+    private var resultTime: Long? = null
+    private var resultDistance: Float? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         finish = view.findViewById(R.id.finish)
         stopWatch = view.findViewById(R.id.stopWatch)
+        var startTime = System.currentTimeMillis()
+        handler = Handler()
 
-        val sharedPreferences = activity?.getSharedPreferences(SHARED_PREFERENCES, MODE_PRIVATE)
-        val locationServiceIsRunning =
-            sharedPreferences?.getBoolean(LOCATION_SERVICE_IS_RUNNING, false)
-        if (locationServiceIsRunning != null && !locationServiceIsRunning) {
-            sharedPreferences.edit().putBoolean(LOCATION_SERVICE_IS_RUNNING, true).apply()
+        animation = AnimatorInflater.loadAnimator(
+            this.context,
+            R.animator.flip_animation
+        ) as ObjectAnimator
+        animation.target = finish
+
+        animation.doOnEnd {
+            val act = activity
+            if (act is RunActivitySwitcher && resultTime != null && resultDistance != null) {
+                act.switchToResultFragment(resultTime!!, resultDistance!!)
+            }
+        }
+
+        if (savedInstanceState != null) {
+            animation.currentPlayTime = savedInstanceState.getLong(RunActivity.ANIMATION_PLAY_TIME)
+            if (animation.currentPlayTime > 0) {
+                animation.start()
+            }
+            resultTime = savedInstanceState.getLong(RunActivity.TIME_EXTRA)
+            resultDistance = savedInstanceState.getFloat(RunActivity.DISTANCE_EXTRA)
+            resultTime.let {stopWatch.text = it.toString()}
+        }
+
+        if(!animation.isRunning) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 activity?.startForegroundService(Intent(context, LocationService::class.java))
             } else {
@@ -68,10 +79,6 @@ class RunFragmentFinish : Fragment() {
             }
         }
 
-        var startTime = System.currentTimeMillis()
-        var stopTime: Long
-
-        handler = Handler()
         runnable = Runnable {
             if (activity != null) {
                 handler.postDelayed(runnable, 10)
@@ -91,7 +98,7 @@ class RunFragmentFinish : Fragment() {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
                 locationService = (service as LocationService.MyBinder).getService()
                 startTime = locationService.startTime
-                stopTime = locationService.stopTime
+                val stopTime = locationService.stopTime
 
                 if (locationService.isGpsEnable) {
                     handler.post(runnable)
@@ -110,18 +117,14 @@ class RunFragmentFinish : Fragment() {
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
+
             }
         }
 
-
         broadcastReceiverReceiveData = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                val time = intent?.getLongExtra(TIME_EXTRA, 0)
-                val distance = intent?.getFloatExtra(DISTANCE_EXTRA, 0f)
-                val act = activity
-                if (act is RunActivitySwitcher && time != null && distance != null) {
-                    act.switchToResultFragment(time, distance)
-                }
+                resultTime = intent?.getLongExtra(RunActivity.TIME_EXTRA, 0)
+                resultDistance = intent?.getFloatExtra(RunActivity.DISTANCE_EXTRA, 0f)
             }
         }
 
@@ -138,27 +141,42 @@ class RunFragmentFinish : Fragment() {
         }
 
         finish.setOnClickListener {
-            sharedPreferences?.edit()?.putBoolean(LOCATION_SERVICE_IS_RUNNING, false)?.apply()
+            if (animation.currentPlayTime < 1) {
+                animation.start()
+            }
             activity?.stopService(Intent(view.context, LocationService::class.java))
             handler.removeCallbacks(runnable)
-
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        activity?.bindService(Intent(context, LocationService::class.java),
-            serviceConnection, 0)
-        activity?.registerReceiver(broadcastReceiverReceiveData,
-            IntentFilter(LocationService.BROADCAST_ACTION_GET_DATA))
-        activity?.registerReceiver(broadcastReceiverOnError,
-            IntentFilter(LocationService.BROADCAST_ACTION_ON_ERROR))
-    }
-
-    override fun onPause() {
-        super.onPause()
+    override fun onStop() {
+        super.onStop()
         activity?.unbindService(serviceConnection)
         activity?.unregisterReceiver(broadcastReceiverReceiveData)
         activity?.unregisterReceiver(broadcastReceiverOnError)
+        handler.removeCallbacks(runnable)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        activity?.bindService(
+            Intent(context, LocationService::class.java),
+            serviceConnection, 0
+        )
+        activity?.registerReceiver(
+            broadcastReceiverReceiveData,
+            IntentFilter(LocationService.BROADCAST_ACTION_GET_DATA)
+        )
+        activity?.registerReceiver(
+            broadcastReceiverOnError,
+            IntentFilter(LocationService.BROADCAST_ACTION_ON_ERROR)
+        )
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putLong(RunActivity.ANIMATION_PLAY_TIME, animation.currentPlayTime)
+        resultDistance?.let { outState.putFloat(RunActivity.DISTANCE_EXTRA, it) }
+        resultTime?.let { outState.putLong(RunActivity.TIME_EXTRA, it) }
     }
 }

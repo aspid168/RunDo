@@ -1,11 +1,9 @@
 package ru.study.rundo.activities
 
-import android.Manifest
 import android.app.*
 import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Bundle
 import android.os.PersistableBundle
@@ -15,17 +13,16 @@ import android.widget.EditText
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import com.google.android.material.navigation.NavigationView
+import ru.study.rundo.LocationService
 import ru.study.rundo.NotificationEventReceiver
 import ru.study.rundo.R
-import ru.study.rundo.TracksDatabase
+import ru.study.rundo.TracksAndNotificationsDatabase
 import ru.study.rundo.fragments.*
 import ru.study.rundo.interfaces.MapSwitcher
-import ru.study.rundo.interfaces.RequestNotificationInfo
+import ru.study.rundo.interfaces.NotificationHandler
 import ru.study.rundo.models.Notification
 import ru.study.rundo.models.NotificationDate
 import ru.study.rundo.models.NotificationTime
@@ -33,16 +30,14 @@ import ru.study.rundo.models.Track
 import java.util.*
 
 
-class MainActivity : AppCompatActivity(), MapSwitcher, RequestNotificationInfo {
+class MainActivity : AppCompatActivity(), MapSwitcher, NotificationHandler {
 
     companion object {
-        private const val TRACK_EXTRA = "TRACK_EXTRA"
+        const val TRACK_EXTRA = "TRACK_EXTRA"
         const val SHARED_PREFERENCES = "SHARED_PREFERENCES"
-        const val LOCATION_SERVICE_IS_RUNNING = "LOCATION_SERVICE_IS_RUNNING"
         const val CURRENT_FRAGMENT = "CURRENT_FRAGMENT"
         const val TOKEN_EXTRA = "TOKEN_EXTRA"
         const val IS_TOKEN_VALID = "IS_TOKEN_VALID"
-        const val IS_SESSION_ACTIVE = "IS_SESSION_ACTIVE"
 
         fun startActivity(context: Context) {
             context.startActivity(createIntent(context))
@@ -69,18 +64,18 @@ class MainActivity : AppCompatActivity(), MapSwitcher, RequestNotificationInfo {
         configureToolbar()
         configureDrawer()
 
-        getPermissionIfNecessary()
         val sharedPreferences = getSharedPreferences(SHARED_PREFERENCES, MODE_PRIVATE)
-        val db = TracksDatabase(this)
         val locationServiceIsRunning = sharedPreferences.getBoolean(
-            LOCATION_SERVICE_IS_RUNNING,
+            LocationService.LOCATION_SERVICE_IS_RUNNING,
             false
         )
 
         logOut.setOnClickListener {
+            val db = TracksAndNotificationsDatabase(this)
+            db.clear()
+            db.close()
             sharedPreferences.edit().clear().apply()
             deleteAllNotifications()
-            db.clear()
             AuthorizationActivity.startActivity(this)
             sharedPreferences.edit().remove(IS_TOKEN_VALID).apply()
             drawerLayout.closeDrawers()
@@ -128,46 +123,6 @@ class MainActivity : AppCompatActivity(), MapSwitcher, RequestNotificationInfo {
             .addToBackStack(null)
             .replace(R.id.mainContainer, mapFragment)
             .commit()
-    }
-
-    private fun checkPermissions(): Boolean {
-        return ContextCompat
-            .checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
-                PackageManager.PERMISSION_GRANTED
-
-    }
-//    private fun checkPermissions(): Boolean {
-//        val isAccessFineLocationGranted = ContextCompat
-//            .checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
-//                PackageManager.PERMISSION_GRANTED
-//        val isAccessCoarseLocationGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-//        return isAccessFineLocationGranted &&
-//                isAccessCoarseLocationGranted
-//
-//    }
-//    private fun getPermissionIfNecessary() {
-//        if (!checkPermissions()) {
-//            ActivityCompat.requestPermissions(
-//                this as Activity,
-//                arrayOf(
-//                    Manifest.permission.ACCESS_FINE_LOCATION,
-//                    Manifest.permission.ACCESS_COARSE_LOCATION
-//                ),
-//                1
-//            )
-//        }
-//    }
-
-    private fun getPermissionIfNecessary() {
-        if (!checkPermissions()) {
-            ActivityCompat.requestPermissions(
-                this as Activity,
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ),
-                1
-            )
-        }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -270,7 +225,7 @@ class MainActivity : AppCompatActivity(), MapSwitcher, RequestNotificationInfo {
     }
 
     override fun save(notification: Notification) {
-        val dataBase = TracksDatabase(this)
+        val dataBase = TracksAndNotificationsDatabase(this)
         dataBase.addNotification(notification)
         val position = dataBase.getId(notification)
         val calendar = Calendar.getInstance()
@@ -304,7 +259,7 @@ class MainActivity : AppCompatActivity(), MapSwitcher, RequestNotificationInfo {
     }
 
     override fun update(newNotification: Notification, currentNotification: Notification) {
-        val dataBase = TracksDatabase(this)
+        val dataBase = TracksAndNotificationsDatabase(this)
         val position = dataBase.getId(currentNotification)
         Log.v("id save", position.toString())
         dataBase.updateNotification(newNotification, currentNotification)
@@ -339,7 +294,7 @@ class MainActivity : AppCompatActivity(), MapSwitcher, RequestNotificationInfo {
 
     override fun delete(notification: Notification) {
 
-        val dataBase = TracksDatabase(this)
+        val dataBase = TracksAndNotificationsDatabase(this)
         val id = dataBase.getId(notification)
         dataBase.deleteNotification(notification)
 
@@ -358,9 +313,8 @@ class MainActivity : AppCompatActivity(), MapSwitcher, RequestNotificationInfo {
     }
 
     private fun deleteAllNotifications() {
-        val db = TracksDatabase(this)
+        val db = TracksAndNotificationsDatabase(this)
         val idList = db.getAllNotificationsId()
-        Log.v("qwe", idList.toString())
         idList.forEach {
             val intent = Intent(this, NotificationEventReceiver::class.java)
             intent.action = "MY_NOTIFICATION_MESSAGE"

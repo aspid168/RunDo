@@ -5,14 +5,14 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
-import com.google.gson.Gson
+import android.widget.Toast
 import com.google.gson.reflect.TypeToken
 import ru.study.rundo.interfaces.SaveTrackResultHandler
 import ru.study.rundo.models.*
 import java.util.*
 
 
-class TracksDatabase(private val context: Context) : SQLiteOpenHelper(
+class TracksAndNotificationsDatabase(private val context: Context) : SQLiteOpenHelper(
     context,
     DB_NAME,
     null,
@@ -56,7 +56,7 @@ class TracksDatabase(private val context: Context) : SQLiteOpenHelper(
             put(COL_3_BEGINS_AT, track.beginsAt)
             put(COL_4_TIME, track.time)
             put(COL_5_DISTANCE, track.distance)
-            put(COL_6_POINTS, Gson().toJson(track.points).toString())
+            put(COL_6_POINTS, SingletonClass.gson.toJson(track.points).toString())
         }
         db.insert(
             TRACKS_TABLE, COL_2_SERVER_ID +
@@ -68,10 +68,9 @@ class TracksDatabase(private val context: Context) : SQLiteOpenHelper(
 
     }
 
-    fun refreshData(tracksList: List<Track>) {
+    fun refreshData(tracksList: List<Track>, token: String) {
         val db = writableDatabase
         val currentTracksList = getTracksList()
-        val workWithServer = WorkWithServer(context)
         if (currentTracksList.size < tracksList.size) {
             tracksList.forEach {
                 if (!currentTracksList.contains(it)) {
@@ -81,7 +80,7 @@ class TracksDatabase(private val context: Context) : SQLiteOpenHelper(
         } else {
             currentTracksList.forEachIndexed { index, track ->
                 if (track.serverId == 0) {
-                    workWithServer.addListenerSave(object : SaveTrackResultHandler {
+                    WorkWithServer.addListenerSave(object : SaveTrackResultHandler {
                         override fun onSuccess(serverId: Int?) {
                             val values = ContentValues().apply {
                                 put(COL_1_ID, index + 1)
@@ -91,7 +90,7 @@ class TracksDatabase(private val context: Context) : SQLiteOpenHelper(
                                 put(COL_5_DISTANCE, track.distance)
                                 put(
                                     COL_6_POINTS,
-                                    Gson().toJson(track.points).toString()
+                                    SingletonClass.gson.toJson(track.points).toString()
                                 )
                             }
                             db.update(
@@ -103,14 +102,13 @@ class TracksDatabase(private val context: Context) : SQLiteOpenHelper(
                         }
 
                         override fun onError() {
-                            TODO("Not yet implemented")
+                            Toast.makeText(context, "saving track error", Toast.LENGTH_LONG).show()
                         }
                     })
-                    workWithServer.save(track)
+                    WorkWithServer.save(track, token)
                 }
             }
         }
-//        db.close()
     }
 
     fun getTracksList(): List<Track> {
@@ -126,32 +124,19 @@ class TracksDatabase(private val context: Context) : SQLiteOpenHelper(
             trackList.add(
                 Track(
                     serverId, beginsAt, time.toLong(), distance.toFloat(),
-                    Gson().fromJson(points, object : TypeToken<List<Point>>() {}.type)
+                    SingletonClass.gson.fromJson(points, object : TypeToken<List<Point>>() {}.type)
                 )
             )
         }
-        trackList.sortByDescending { it.beginsAt }
         cursor.close()
         return trackList
     }
 
     fun addNotification(notification: Notification) {
         val db = writableDatabase
-
-        val timeInMls = Calendar.getInstance()
-        timeInMls.set(Calendar.YEAR, notification.date.year )
-        timeInMls.set(Calendar.MONTH, notification.date.month - 1 )
-        timeInMls.set(Calendar.DAY_OF_MONTH, notification.date.day)
-        timeInMls.set(Calendar.HOUR_OF_DAY, notification.time.hours )
-        timeInMls.set(Calendar.MINUTE, notification.time.minutes )
-        timeInMls.set(Calendar.SECOND, 0)
-        timeInMls.set(Calendar.MILLISECOND, 0)
-
-        Log.v("add", timeInMls.timeInMillis.toString())
-
+        val notificationTime = setNotificationTime(notification)
         val values = ContentValues().apply {
-//            put(COL_1_NOTIFICATION_ID, position)
-            put(COL_2_NOTIFICATION_DATE_AND_TIME, timeInMls.timeInMillis)
+            put(COL_2_NOTIFICATION_DATE_AND_TIME, notificationTime.timeInMillis)
             put(COL_3_NOTIFICATION_DESCRIPTION, notification.description)
         }
         db.insert(NOTIFICATIONS_TABLE, null, values)
@@ -159,32 +144,13 @@ class TracksDatabase(private val context: Context) : SQLiteOpenHelper(
 
     fun updateNotification(newNotification: Notification, currentNotification: Notification) {
         val db = writableDatabase
-
-        val newNotificationTimeInMls = Calendar.getInstance()
-        newNotificationTimeInMls.set(Calendar.YEAR, newNotification.date.year)
-        newNotificationTimeInMls.set(Calendar.MONTH, newNotification.date.month - 1)
-        newNotificationTimeInMls.set(Calendar.DAY_OF_MONTH, newNotification.date.day)
-        newNotificationTimeInMls.set(Calendar.HOUR_OF_DAY, newNotification.time.hours)
-        newNotificationTimeInMls.set(Calendar.MINUTE, newNotification.time.minutes)
-        newNotificationTimeInMls.set(Calendar.SECOND, 0)
-        newNotificationTimeInMls.set(Calendar.MILLISECOND, 0)
-
-
-        val currentNotificationTimeInMls = Calendar.getInstance()
-        currentNotificationTimeInMls.set(Calendar.YEAR, currentNotification.date.year)
-        currentNotificationTimeInMls.set(Calendar.MONTH, currentNotification.date.month - 1)
-        currentNotificationTimeInMls.set(Calendar.DAY_OF_MONTH, currentNotification.date.day)
-        currentNotificationTimeInMls.set(Calendar.HOUR_OF_DAY, currentNotification.time.hours)
-        currentNotificationTimeInMls.set(Calendar.MINUTE, currentNotification.time.minutes)
-        currentNotificationTimeInMls.set(Calendar.SECOND, 0)
-        currentNotificationTimeInMls.set(Calendar.MILLISECOND, 0)
-
+        val newNotificationTime = setNotificationTime(newNotification)
+        val currentNotificationTime = setNotificationTime(currentNotification)
         val values = ContentValues().apply {
-            put(COL_2_NOTIFICATION_DATE_AND_TIME, newNotificationTimeInMls.timeInMillis)
+            put(COL_2_NOTIFICATION_DATE_AND_TIME, newNotificationTime.timeInMillis)
             put(COL_3_NOTIFICATION_DESCRIPTION, newNotification.description)
         }
-
-        val item = db.rawQuery("SELECT $COL_1_NOTIFICATION_ID FROM $NOTIFICATIONS_TABLE WHERE $COL_2_NOTIFICATION_DATE_AND_TIME = ${currentNotificationTimeInMls.timeInMillis}", null)
+        val item = db.rawQuery("SELECT $COL_1_NOTIFICATION_ID FROM $NOTIFICATIONS_TABLE WHERE $COL_2_NOTIFICATION_DATE_AND_TIME = ${currentNotificationTime.timeInMillis}", null)
         item.moveToNext()
         db.update(NOTIFICATIONS_TABLE, values, COL_1_NOTIFICATION_ID + "=" + item.getString(item.getColumnIndex(COL_1_NOTIFICATION_ID)), null)
         item.close()
@@ -192,17 +158,8 @@ class TracksDatabase(private val context: Context) : SQLiteOpenHelper(
 
     fun getId(notification: Notification): Int {
         val db = writableDatabase
-
-        val currentNotificationTimeInMls = Calendar.getInstance()
-        currentNotificationTimeInMls.set(Calendar.YEAR, notification.date.year)
-        currentNotificationTimeInMls.set(Calendar.MONTH, notification.date.month - 1)
-        currentNotificationTimeInMls.set(Calendar.DAY_OF_MONTH, notification.date.day)
-        currentNotificationTimeInMls.set(Calendar.HOUR_OF_DAY, notification.time.hours)
-        currentNotificationTimeInMls.set(Calendar.MINUTE, notification.time.minutes)
-        currentNotificationTimeInMls.set(Calendar.SECOND, 0)
-        currentNotificationTimeInMls.set(Calendar.MILLISECOND, 0)
-
-        val item = db.rawQuery("SELECT $COL_1_NOTIFICATION_ID FROM $NOTIFICATIONS_TABLE WHERE $COL_2_NOTIFICATION_DATE_AND_TIME = ${currentNotificationTimeInMls.timeInMillis}", null)
+        val currentNotificationTime = setNotificationTime(notification)
+        val item = db.rawQuery("SELECT $COL_1_NOTIFICATION_ID FROM $NOTIFICATIONS_TABLE WHERE $COL_2_NOTIFICATION_DATE_AND_TIME = ${currentNotificationTime.timeInMillis}", null)
         item.moveToNext()
         val id = item.getInt(item.getColumnIndex(COL_1_NOTIFICATION_ID))
         item.close()
@@ -211,22 +168,8 @@ class TracksDatabase(private val context: Context) : SQLiteOpenHelper(
 
     fun deleteNotification(notification: Notification) {
         val db = writableDatabase
-
-        val timeInMls = Calendar.getInstance()
-        timeInMls.set(Calendar.YEAR, notification.date.year)
-        timeInMls.set(Calendar.MONTH, notification.date.month - 1)
-        timeInMls.set(Calendar.DAY_OF_MONTH, notification.date.day)
-        timeInMls.set(Calendar.HOUR_OF_DAY, notification.time.hours)
-        timeInMls.set(Calendar.MINUTE, notification.time.minutes)
-        timeInMls.set(Calendar.SECOND, 0)
-        timeInMls.set(Calendar.MILLISECOND, 0)
-
-        db.delete(NOTIFICATIONS_TABLE, COL_2_NOTIFICATION_DATE_AND_TIME + "=" + timeInMls.timeInMillis, null)
-    }
-
-    fun deleteNotificationById(id: Int) {
-        val db = writableDatabase
-        db.delete(NOTIFICATIONS_TABLE, "$COL_1_NOTIFICATION_ID=$id", null)
+        val notificationTime = setNotificationTime(notification)
+        db.delete(NOTIFICATIONS_TABLE, COL_2_NOTIFICATION_DATE_AND_TIME + "=" + notificationTime.timeInMillis, null)
     }
 
     fun getNotificationsList(): List<Notification> {
@@ -256,6 +199,18 @@ class TracksDatabase(private val context: Context) : SQLiteOpenHelper(
         }
         cursor.close()
         return idList
+    }
+
+    private fun setNotificationTime(notification: Notification): Calendar {
+        val timeInMls = Calendar.getInstance()
+        timeInMls.set(Calendar.YEAR, notification.date.year)
+        timeInMls.set(Calendar.MONTH, notification.date.month - 1)
+        timeInMls.set(Calendar.DAY_OF_MONTH, notification.date.day)
+        timeInMls.set(Calendar.HOUR_OF_DAY, notification.time.hours)
+        timeInMls.set(Calendar.MINUTE, notification.time.minutes)
+        timeInMls.set(Calendar.SECOND, 0)
+        timeInMls.set(Calendar.MILLISECOND, 0)
+        return timeInMls
     }
 
     fun clear() {

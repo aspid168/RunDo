@@ -11,13 +11,11 @@ import android.widget.Toast
 import androidx.core.util.PatternsCompat.EMAIL_ADDRESS
 import ru.study.rundo.interfaces.AuthorizationActivityNavigator
 import ru.study.rundo.R
-import ru.study.rundo.SingletonClass
 import ru.study.rundo.WorkWithServer
-import ru.study.rundo.activities.AuthorizationActivity
-import ru.study.rundo.interfaces.Handler
+import ru.study.rundo.interfaces.ServerHandler
 import ru.study.rundo.models.TokenInfo
 
-class LoginFragment : Fragment() {
+class LoginFragment : Fragment(), ServerHandler<TokenInfo> {
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -26,10 +24,10 @@ class LoginFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_login, container, false)
     }
 
-    lateinit var loginButton: Button
-    lateinit var registrationButton: Button
-    lateinit var email: EditText
-    lateinit var password: EditText
+    private lateinit var loginButton: Button
+    private lateinit var registrationButton: Button
+    private lateinit var email: EditText
+    private lateinit var password: EditText
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -40,7 +38,6 @@ class LoginFragment : Fragment() {
         password = view.findViewById(R.id.password)
 
         val act = activity
-
         registrationButton.setOnClickListener {
             if (act is AuthorizationActivityNavigator) {
                 act.switchToRegistrationFragment()
@@ -48,22 +45,8 @@ class LoginFragment : Fragment() {
         }
 
         loginButton.setOnClickListener {
-//            (act as AuthorizationActivityNavigator).goToMainActivity("117:1f9b389df8dae29af45b8465d2a85705c9ba0afa")
-            if (emailValidCheck()) {
-                val workWithServer = WorkWithServer(requireContext())
-                workWithServer.login(getEmailText(), getPasswordText())
-                workWithServer.addListenerLogin(object : Handler<TokenInfo> {
-                    override fun onSuccess(result: TokenInfo) {
-                        if (act is AuthorizationActivityNavigator) {
-                            act.goToMainActivity(result.token)
-                        }
-                    }
-
-                    override fun onError(error: String) {
-                        Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
-                    }
-                })
-
+            if (emailValidCheck() && WorkWithServer.isLoginFinished == null) {
+                WorkWithServer.login(getEmailText(), getPasswordText())
             }
         }
     }
@@ -82,5 +65,26 @@ class LoginFragment : Fragment() {
             this.email.error = resources.getString(R.string.invalidEmailError)
         }
         return isValid
+    }
+
+    override fun onStart() {
+        super.onStart()
+        WorkWithServer.addListenerLogin(this)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        WorkWithServer.addListenerLogin(null)
+    }
+
+    override fun onSuccess(result: TokenInfo) {
+        val act = activity
+        if (act is AuthorizationActivityNavigator) {
+            act.goToMainActivity(result.token)
+        }
+    }
+
+    override fun onError(error: String) {
+        Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
     }
 }

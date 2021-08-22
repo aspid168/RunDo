@@ -27,7 +27,6 @@
         android:textColor="@color/black"
         android:layout_marginTop="@dimen/bordersBetweenElements"
         app:layout_constraintTop_toBottomOf="@id/finish"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 

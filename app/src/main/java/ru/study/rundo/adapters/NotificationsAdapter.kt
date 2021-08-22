@@ -6,26 +6,23 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
-import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import ru.study.rundo.R
-import ru.study.rundo.interfaces.RequestNotificationInfo
+import ru.study.rundo.interfaces.NotificationHandler
 import ru.study.rundo.models.Notification
 import ru.study.rundo.models.NotificationDate
 import ru.study.rundo.models.NotificationTime
-import kotlin.coroutines.coroutineContext
-import kotlin.system.measureNanoTime
 
 class NotificationsAdapter(
     private val notificationsList: MutableList<Notification>,
-    private val requestNotificationInfo: RequestNotificationInfo
+    private val notificationHandler: NotificationHandler
 ) :
     RecyclerView.Adapter<NotificationsAdapter.ViewHolder>() {
 
     class ViewHolder(
         private val view: View,
-        private val requestNotificationInfo: RequestNotificationInfo
+        private val notificationHandler: NotificationHandler
     ) : RecyclerView.ViewHolder(view) {
 
         private val date = view.findViewById<TextView>(R.id.date)
@@ -50,13 +47,13 @@ class NotificationsAdapter(
             text.text = notification.description
 
             edit.setOnClickListener {
-                requestNotificationInfo.requestDate(notification.date) {
+                notificationHandler.requestDate(notification.date) {
                     click(it)
                 }
-                requestNotificationInfo.requestTime(notification.time) {
+                notificationHandler.requestTime(notification.time) {
                     click(it)
                 }
-                requestNotificationInfo.requestText(notification.description) {
+                notificationHandler.requestText(notification.description) {
                     click(it)
                 }
             }
@@ -82,7 +79,7 @@ class NotificationsAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.notofications_adapter_element, parent, false)
-        return ViewHolder(view, requestNotificationInfo)
+        return ViewHolder(view, notificationHandler)
     }
 
     private var newNotification: Notification = Notification(
@@ -111,7 +108,7 @@ class NotificationsAdapter(
                         }
                     }
                     if (!isDuplicated) {
-                        requestNotificationInfo.update(
+                        notificationHandler.update(
                             newNotification,
                             notificationsList[position]
                         )
@@ -126,7 +123,7 @@ class NotificationsAdapter(
             }
             notifyItemChanged(position)
         }, {
-            requestNotificationInfo.delete(notificationsList[position])
+            notificationHandler.delete(notificationsList[position])
             notificationsList.removeAt(position)
             notifyDataSetChanged()
         })
@@ -146,7 +143,7 @@ class NotificationsAdapter(
         }
         if (!isDuplicated) {
             notificationsList.add(notification)
-            requestNotificationInfo.save(notification)
+            notificationHandler.save(notification)
             notifyItemInserted(notificationsList.size)
         }
     }

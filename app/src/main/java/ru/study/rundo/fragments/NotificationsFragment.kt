@@ -9,9 +9,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import ru.study.rundo.R
-import ru.study.rundo.TracksDatabase
+import ru.study.rundo.TracksAndNotificationsDatabase
 import ru.study.rundo.adapters.NotificationsAdapter
-import ru.study.rundo.interfaces.RequestNotificationInfo
+import ru.study.rundo.interfaces.NotificationHandler
 import ru.study.rundo.models.Notification
 import ru.study.rundo.models.NotificationDate
 import ru.study.rundo.models.NotificationTime
@@ -35,25 +35,16 @@ class NotificationsFragment : Fragment() {
         notificationsRecyclerView = view.findViewById(R.id.notificationsRecyclerView)
         add = view.findViewById(R.id.add)
 
-        val db = TracksDatabase(requireContext())
+        val db = TracksAndNotificationsDatabase(requireContext())
 
         val listNotifications = db.getNotificationsList()  as MutableList<Notification>
 
         notificationsRecyclerViewAdapter =
-            NotificationsAdapter(listNotifications, activity as RequestNotificationInfo)
+            NotificationsAdapter(listNotifications, activity as NotificationHandler)
 
         notificationsRecyclerView.layoutManager = LinearLayoutManager(view.context)
         notificationsRecyclerView.adapter = notificationsRecyclerViewAdapter
 
-//        add.setOnClickListener {
-//            val calendar = Calendar.getInstance()
-//            val time = NotificationTime(12,
-//                calendar.get(Calendar.MINUTE))
-//            val date = NotificationDate(
-//                calendar.get(Calendar.YEAR),
-//                calendar.get(Calendar.MONTH) + 1,
-//                calendar.get(Calendar.DAY_OF_MONTH) + 1
-//            )
 
         add.setOnClickListener {
             val calendar = Calendar.getInstance()
@@ -66,9 +57,6 @@ class NotificationsFragment : Fragment() {
             )
 
             notificationsRecyclerViewAdapter.add(Notification(time, date, "you need run now"))
-//
-//            Toast.makeText(requireContext(), "please set notification data", Toast.LENGTH_LONG)
-//                .show()
         }
     }
 }

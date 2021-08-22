@@ -24,9 +24,8 @@ class RunActivity : AppCompatActivity(), RunActivitySwitcher {
         const val CURRENT_FRAGMENT = "CURRENT_FRAGMENT"
         const val DISTANCE_EXTRA = "DISTANCE_EXTRA"
         const val TIME_EXTRA = "TIME_EXTRA"
-        const val SHARED_PREFERENCES = "SHARED_PREFERENCES"
-        const val LOCATION_SERVICE_IS_RUNNING = "LOCATION_SERVICE_IS_RUNNING"
         const val RUN_FRAGMENT_FINISH_TAG = "RUN_FRAGMENT_FINISH_TAG"
+        const val ANIMATION_PLAY_TIME = "ANIMATION_PLAY_TIME"
         fun startActivity(context: Context) {
             context.startActivity(createIntent(context))
         }
@@ -39,19 +38,19 @@ class RunActivity : AppCompatActivity(), RunActivitySwitcher {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_run)
-        val sharedPreferences = getSharedPreferences(SHARED_PREFERENCES, MODE_PRIVATE)
+        val sharedPreferences = getSharedPreferences(MainActivity.SHARED_PREFERENCES, MODE_PRIVATE)
         val locationServiceIsRunning =
-            sharedPreferences.getBoolean(LOCATION_SERVICE_IS_RUNNING, false)
-        if (locationServiceIsRunning) {
-            switchToFinishFragment()
+            sharedPreferences.getBoolean(LocationService.LOCATION_SERVICE_IS_RUNNING, false)
+
+        if (savedInstanceState != null) {
+            switchToLastFragment(savedInstanceState)
         } else {
-            if (savedInstanceState == null) {
-                switchToStartFragment()
+            if (locationServiceIsRunning) {
+                switchToFinishFragment()
             } else {
-                switchToLastFragment(savedInstanceState)
+                switchToStartFragment()
             }
         }
-
     }
 
     override fun onBackPressed() {
@@ -73,7 +72,7 @@ class RunActivity : AppCompatActivity(), RunActivitySwitcher {
     override fun switchToFinishFragment() {
         val runFragmentFinish = RunFragmentFinish()
         supportFragmentManager.beginTransaction()
-            .replace(R.id.runContainer, runFragmentFinish, RUN_FRAGMENT_FINISH_TAG).commit()
+            .replace(R.id.runContainer, runFragmentFinish, RUN_FRAGMENT_FINISH_TAG).commitAllowingStateLoss()
     }
 
     override fun switchToResultFragment(time: Long, distance: Float) {
@@ -84,7 +83,7 @@ class RunActivity : AppCompatActivity(), RunActivitySwitcher {
         runFragmentResult.arguments = bundle
         supportFragmentManager.beginTransaction()
             .replace(R.id.runContainer, runFragmentResult)
-            .commit()
+            .commitAllowingStateLoss()
     }
 
     override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {

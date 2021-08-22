@@ -3,6 +3,6 @@ package ru.study.rundo.models
 import java.io.Serializable
 
 data class Point (
-    val lng: Double,
-    val lat: Double
+    val lat: Double,
+    val lng: Double
 ): Serializable

@@ -5,19 +5,16 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.net.ConnectivityManager
 import android.os.Binder
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
-import android.util.Log
-import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import ru.study.rundo.activities.MainActivity
 import ru.study.rundo.interfaces.SaveTrackResultHandler
 import ru.study.rundo.models.Point
 import ru.study.rundo.models.Track
@@ -32,6 +29,7 @@ class LocationService : Service(), LocationListener {
         const val DISTANCE_EXTRA = "DISTANCE_EXTRA"
         const val TIME_EXTRA = "TIME_EXTRA"
         const val IS_GPS_ENABLED = "IS_GPS_ENABLED"
+        const val LOCATION_SERVICE_IS_RUNNING = "LOCATION_SERVICE_IS_RUNNING"
     }
 
     override fun onBind(intent: Intent): IBinder {
@@ -55,25 +53,27 @@ class LocationService : Service(), LocationListener {
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val n = NotificationChannel(
-                1.toString(),
+                "1",
                 "Run progress notifications",
                 NotificationManager.IMPORTANCE_HIGH
             )
             notificationManager.createNotificationChannel(n)
         }
-        val notification: Notification = builder.build()
+        val notification = builder.build()
+        startTime = System.currentTimeMillis()
+        locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+        locationManager.requestLocationUpdates(
+            LocationManager.GPS_PROVIDER,
+            0,
+            5f,
+            this
+        )
+        val sharedPreferences = getSharedPreferences(MainActivity.SHARED_PREFERENCES, MODE_PRIVATE)
+        sharedPreferences.edit().putBoolean(LOCATION_SERVICE_IS_RUNNING, true).apply()
         startForeground(1, notification)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-        startTime = System.currentTimeMillis()
-        locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
-            2000,
-            0f,
-            this
-        )
         return START_NOT_STICKY
     }
 
@@ -141,6 +141,10 @@ class LocationService : Service(), LocationListener {
     override fun onDestroy() {
         addLocation(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER))
         locationManager.removeUpdates(this)
+        getSharedPreferences(MainActivity.SHARED_PREFERENCES, MODE_PRIVATE).edit()
+            .putBoolean(LOCATION_SERVICE_IS_RUNNING, false)
+            .apply()
+
         val track = createTrack()
         saveTrack(track)
         sendBroadcast(
@@ -160,17 +164,19 @@ class LocationService : Service(), LocationListener {
     }
 
     private fun saveTrack(track: Track) {
-        val workWithServer = WorkWithServer(this)
-        workWithServer.addListenerSave(object : SaveTrackResultHandler {
+        val tracksDatabase = TracksAndNotificationsDatabase(this@LocationService)
+        val token = getSharedPreferences(MainActivity.SHARED_PREFERENCES, MODE_PRIVATE)
+            .getString(MainActivity.TOKEN_EXTRA, null)
+        WorkWithServer.addListenerSave(object : SaveTrackResultHandler {
             override fun onSuccess(serverId: Int?) {
-                Toast.makeText(this@LocationService, "Track saved", Toast.LENGTH_SHORT).show()
+
             }
 
             override fun onError() {
-                val tracksDatabase = TracksDatabase(this@LocationService)
                 tracksDatabase.addTrack(track)
+                tracksDatabase.close()
             }
         })
-        workWithServer.save(track)
+        token?.let { WorkWithServer.save(track, token) }
     }
 }

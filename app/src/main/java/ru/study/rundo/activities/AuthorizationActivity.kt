@@ -5,7 +5,6 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import ru.study.rundo.R
-import ru.study.rundo.TracksDatabase
 import ru.study.rundo.fragments.LoginFragment
 import ru.study.rundo.fragments.RegistrationFragment
 import ru.study.rundo.interfaces.AuthorizationActivityNavigator
@@ -13,7 +12,8 @@ import ru.study.rundo.interfaces.AuthorizationActivityNavigator
 class AuthorizationActivity : AppCompatActivity(), AuthorizationActivityNavigator {
 
     companion object {
-        const val CURRENT_FRAGMENT = "current fragment"
+        private const val CURRENT_FRAGMENT = "CURRENT_FRAGMENT"
+
         fun startActivity(context: Context) {
             context.startActivity(createIntent(context))
         }
@@ -26,7 +26,6 @@ class AuthorizationActivity : AppCompatActivity(), AuthorizationActivityNavigato
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_authorization)
-
         if (savedInstanceState != null) {
             supportFragmentManager.getFragment(savedInstanceState, CURRENT_FRAGMENT)
                 ?.let {
