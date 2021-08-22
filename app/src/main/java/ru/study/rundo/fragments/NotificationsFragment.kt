@@ -1,5 +1,6 @@
 package ru.study.rundo.fragments
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -36,8 +37,8 @@ class NotificationsFragment : Fragment() {
         add = view.findViewById(R.id.add)
 
         val db = TracksAndNotificationsDatabase(requireContext())
-
         val listNotifications = db.getNotificationsList()  as MutableList<Notification>
+        db.close()
 
         notificationsRecyclerViewAdapter =
             NotificationsAdapter(listNotifications, activity as NotificationHandler)
@@ -49,14 +50,28 @@ class NotificationsFragment : Fragment() {
         add.setOnClickListener {
             val calendar = Calendar.getInstance()
             val time = NotificationTime(calendar.get(Calendar.HOUR_OF_DAY),
-                calendar.get(Calendar.MINUTE) + 1)
+                calendar.get(Calendar.MINUTE))
             val date = NotificationDate(
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH) + 1,
-                calendar.get(Calendar.DAY_OF_MONTH)
+                calendar.get(Calendar.DAY_OF_MONTH) + 1
             )
 
             notificationsRecyclerViewAdapter.add(Notification(time, date, "you need run now"))
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (activity != null) {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (activity != null) {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
         }
     }
 }

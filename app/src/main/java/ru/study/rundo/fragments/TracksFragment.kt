@@ -67,7 +67,6 @@ class TracksFragment : Fragment(), ServerHandler<TracksList> {
 
         val db = TracksAndNotificationsDatabase(requireContext())
         tracksList = db.getTracksList().sortedByDescending { it.beginsAt }
-        db.close()
         val isTokenValid = getIsTokenValid()
         val isSessionActive = getIsSessionActive()
         val token = getToken()
@@ -168,7 +167,6 @@ class TracksFragment : Fragment(), ServerHandler<TracksList> {
         token?.let { db.refreshData(result.tracks, token) }
         tracksRecyclerViewAdapter.updateList(
             db.getTracksList().sortedByDescending { it.beginsAt })
-        db.close()
         progressDialog.dismiss()
         isRefreshing = false
         swipeRefreshLayout.isRefreshing = false

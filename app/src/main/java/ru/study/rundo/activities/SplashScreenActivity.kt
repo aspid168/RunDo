@@ -76,7 +76,6 @@ class SplashScreenActivity : AppCompatActivity(), ServerHandler<TracksList> {
         if (token != null) {
             val db = TracksAndNotificationsDatabase(this)
             db.refreshData(result.tracks, token)
-            db.close()
         }
         startMainActivity()
     }

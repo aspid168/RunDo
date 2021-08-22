@@ -18,6 +18,7 @@ import ru.study.rundo.activities.MainActivity
 import ru.study.rundo.interfaces.SaveTrackResultHandler
 import ru.study.rundo.models.Point
 import ru.study.rundo.models.Track
+import kotlin.math.roundToInt
 
 
 @SuppressLint("MissingPermission")
@@ -164,7 +165,7 @@ class LocationService : Service(), LocationListener {
     }
 
     private fun saveTrack(track: Track) {
-        val tracksDatabase = TracksAndNotificationsDatabase(this@LocationService)
+        val db = TracksAndNotificationsDatabase(this@LocationService)
         val token = getSharedPreferences(MainActivity.SHARED_PREFERENCES, MODE_PRIVATE)
             .getString(MainActivity.TOKEN_EXTRA, null)
         WorkWithServer.addListenerSave(object : SaveTrackResultHandler {
@@ -173,8 +174,9 @@ class LocationService : Service(), LocationListener {
             }
 
             override fun onError() {
-                tracksDatabase.addTrack(track)
-                tracksDatabase.close()
+                track.distance = track.distance.roundToInt().toFloat()
+                db.addTrack(track)
+                db.close()
             }
         })
         token?.let { WorkWithServer.save(track, token) }

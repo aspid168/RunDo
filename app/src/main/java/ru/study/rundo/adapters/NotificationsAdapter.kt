@@ -1,6 +1,5 @@
 package ru.study.rundo.adapters
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -102,13 +101,11 @@ class NotificationsAdapter(
                     newNotification.description = it
                     notificationsList.forEach { element ->
                         if (element.time == newNotification.time && element.date == newNotification.date) {
-                            Log.v("elem", element.toString())
-                            Log.v("new", newNotification.toString())
                             isDuplicated = true
                         }
                     }
                     if (!isDuplicated) {
-                        notificationHandler.update(
+                        notificationHandler.updateNotification(
                             newNotification,
                             notificationsList[position]
                         )
@@ -123,7 +120,7 @@ class NotificationsAdapter(
             }
             notifyItemChanged(position)
         }, {
-            notificationHandler.delete(notificationsList[position])
+            notificationHandler.deleteNotification(notificationsList[position])
             notificationsList.removeAt(position)
             notifyDataSetChanged()
         })
@@ -143,7 +140,7 @@ class NotificationsAdapter(
         }
         if (!isDuplicated) {
             notificationsList.add(notification)
-            notificationHandler.save(notification)
+            notificationHandler.saveNotification(notification)
             notifyItemInserted(notificationsList.size)
         }
     }

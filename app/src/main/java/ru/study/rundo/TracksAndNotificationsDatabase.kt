@@ -5,7 +5,6 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
-import android.widget.Toast
 import com.google.gson.reflect.TypeToken
 import ru.study.rundo.interfaces.SaveTrackResultHandler
 import ru.study.rundo.models.*
@@ -56,7 +55,7 @@ class TracksAndNotificationsDatabase(private val context: Context) : SQLiteOpenH
             put(COL_3_BEGINS_AT, track.beginsAt)
             put(COL_4_TIME, track.time)
             put(COL_5_DISTANCE, track.distance)
-            put(COL_6_POINTS, SingletonClass.gson.toJson(track.points).toString())
+            put(COL_6_POINTS, RetrofitAndGsonInstances.gson.toJson(track.points).toString())
         }
         db.insert(
             TRACKS_TABLE, COL_2_SERVER_ID +
@@ -80,32 +79,31 @@ class TracksAndNotificationsDatabase(private val context: Context) : SQLiteOpenH
         } else {
             currentTracksList.forEachIndexed { index, track ->
                 if (track.serverId == 0) {
+                    WorkWithServer.save(track, token)
                     WorkWithServer.addListenerSave(object : SaveTrackResultHandler {
                         override fun onSuccess(serverId: Int?) {
                             val values = ContentValues().apply {
-                                put(COL_1_ID, index + 1)
+                                put(COL_1_ID, (index + 1))
                                 put(COL_2_SERVER_ID, serverId)
                                 put(COL_3_BEGINS_AT, track.beginsAt)
                                 put(COL_4_TIME, track.time)
                                 put(COL_5_DISTANCE, track.distance)
                                 put(
                                     COL_6_POINTS,
-                                    SingletonClass.gson.toJson(track.points).toString()
+                                    RetrofitAndGsonInstances.gson.toJson(track.points).toString()
                                 )
                             }
                             db.update(
                                 TRACKS_TABLE,
                                 values,
-                                "$COL_1_ID=" + (index + 1).toString(),
+                                "$COL_1_ID= ${(index + 1)}",
                                 null
                             )
                         }
 
                         override fun onError() {
-                            Toast.makeText(context, "saving track error", Toast.LENGTH_LONG).show()
                         }
                     })
-                    WorkWithServer.save(track, token)
                 }
             }
         }
@@ -124,7 +122,7 @@ class TracksAndNotificationsDatabase(private val context: Context) : SQLiteOpenH
             trackList.add(
                 Track(
                     serverId, beginsAt, time.toLong(), distance.toFloat(),
-                    SingletonClass.gson.fromJson(points, object : TypeToken<List<Point>>() {}.type)
+                    RetrofitAndGsonInstances.gson.fromJson(points, object : TypeToken<List<Point>>() {}.type)
                 )
             )
         }

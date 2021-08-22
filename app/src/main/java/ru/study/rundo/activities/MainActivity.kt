@@ -189,7 +189,6 @@ class MainActivity : AppCompatActivity(), MapSwitcher, NotificationHandler {
         }
     }
 
-
     override fun requestDate(
         currentDate: NotificationDate,
         getDate: (notificationDate: NotificationDate) -> Unit
@@ -202,8 +201,9 @@ class MainActivity : AppCompatActivity(), MapSwitcher, NotificationHandler {
         currentTime: NotificationTime,
         getTime: (notificationTime: NotificationTime) -> Unit
     ) {
-        val datePickerFragment = TimePickerFragment(currentTime, getTime)
-        datePickerFragment.show(supportFragmentManager, null)
+        val timePickerFragment = TimePickerFragment(currentTime, getTime)
+        timePickerFragment.show(supportFragmentManager, null)
+        timePickerFragment.dismiss()
     }
 
     override fun requestText(currentText: String, getText: (text: String) -> Unit) {
@@ -213,6 +213,7 @@ class MainActivity : AppCompatActivity(), MapSwitcher, NotificationHandler {
         alertDialogBuilder.setTitle("Notification")
         alertDialogBuilder.setMessage("Enter notification text")
         alertDialogBuilder.setView(inputTextView)
+        alertDialogBuilder.setCancelable(false)
         alertDialogBuilder.setPositiveButton(
             "Ok"
         ) { _, _ ->
@@ -224,10 +225,11 @@ class MainActivity : AppCompatActivity(), MapSwitcher, NotificationHandler {
         alertDialogBuilder.show()
     }
 
-    override fun save(notification: Notification) {
-        val dataBase = TracksAndNotificationsDatabase(this)
-        dataBase.addNotification(notification)
-        val position = dataBase.getId(notification)
+    override fun saveNotification(notification: Notification) {
+        val db = TracksAndNotificationsDatabase(this)
+        db.addNotification(notification)
+        val position = db.getId(notification)
+        db.close()
         val calendar = Calendar.getInstance()
         calendar.set(Calendar.HOUR_OF_DAY, notification.time.hours)
         calendar.set(Calendar.MINUTE, notification.time.minutes)
@@ -253,16 +255,14 @@ class MainActivity : AppCompatActivity(), MapSwitcher, NotificationHandler {
         val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
         if (System.currentTimeMillis() < calendar.timeInMillis) {
             alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pendingIntent)
-//            val alarmClockInfo = AlarmManager.AlarmClockInfo(calendar.time.time, pendingIntent)
-//            alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
         }
     }
 
-    override fun update(newNotification: Notification, currentNotification: Notification) {
-        val dataBase = TracksAndNotificationsDatabase(this)
-        val position = dataBase.getId(currentNotification)
-        Log.v("id save", position.toString())
-        dataBase.updateNotification(newNotification, currentNotification)
+    override fun updateNotification(newNotification: Notification, currentNotification: Notification) {
+        val db = TracksAndNotificationsDatabase(this)
+        val position = db.getId(currentNotification)
+        db.updateNotification(newNotification, currentNotification)
+        db.close()
 
         val calendar = Calendar.getInstance()
         calendar.set(Calendar.HOUR_OF_DAY, newNotification.time.hours)
@@ -292,11 +292,12 @@ class MainActivity : AppCompatActivity(), MapSwitcher, NotificationHandler {
         }
     }
 
-    override fun delete(notification: Notification) {
+    override fun deleteNotification(notification: Notification) {
 
-        val dataBase = TracksAndNotificationsDatabase(this)
-        val id = dataBase.getId(notification)
-        dataBase.deleteNotification(notification)
+        val db = TracksAndNotificationsDatabase(this)
+        val id = db.getId(notification)
+        db.deleteNotification(notification)
+        db.close()
 
         val intent = Intent(this, NotificationEventReceiver::class.java)
         intent.action = "MY_NOTIFICATION_MESSAGE"
@@ -315,6 +316,7 @@ class MainActivity : AppCompatActivity(), MapSwitcher, NotificationHandler {
     private fun deleteAllNotifications() {
         val db = TracksAndNotificationsDatabase(this)
         val idList = db.getAllNotificationsId()
+        db.close()
         idList.forEach {
             val intent = Intent(this, NotificationEventReceiver::class.java)
             intent.action = "MY_NOTIFICATION_MESSAGE"

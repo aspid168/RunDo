@@ -40,7 +40,7 @@ object WorkWithServer {
         password: String
     ): Task<TokenInfo> {
         isRegistrationFinished = false
-        val retrofit = SingletonClass.retrofit
+        val retrofit = RetrofitAndGsonInstances.retrofit
         return Task.callInBackground {
             val json = JSONObject()
                 .put("email", email)
@@ -65,7 +65,7 @@ object WorkWithServer {
     }
 
     fun login(email: String, password: String): Task<TokenInfo> {
-        val retrofit = SingletonClass.retrofit
+        val retrofit = RetrofitAndGsonInstances.retrofit
         return Task.callInBackground {
             isLoginFinished = false
             val json = JSONObject()
@@ -90,9 +90,9 @@ object WorkWithServer {
 
 
     fun save(track: Track, token: String): Task<Int> {
-        val retrofit = SingletonClass.retrofit
+        val retrofit = RetrofitAndGsonInstances.retrofit
         return Task.callInBackground {
-            val json = JSONObject(SingletonClass.gson.toJson(track))
+            val json = JSONObject(RetrofitAndGsonInstances.gson.toJson(track))
                 .put("token", token)
                 .toString()
                 .toRequestBody()
@@ -108,7 +108,7 @@ object WorkWithServer {
     }
 
     fun getTracks(token: String): Task<TracksList> {
-        val retrofit = SingletonClass.retrofit
+        val retrofit = RetrofitAndGsonInstances.retrofit
         return Task.callInBackground {
             isGetTracksFinished = false
             val json = JSONObject()
@@ -150,7 +150,7 @@ object WorkWithServer {
     }
 
     private fun getPoint(json: RequestBody): Task<PointsList> {
-        val retrofit = SingletonClass.retrofit
+        val retrofit = RetrofitAndGsonInstances.retrofit
         return Task.callInBackground {
             retrofit.getPoints(json).execute().body()
         }

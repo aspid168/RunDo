@@ -11,7 +11,7 @@ interface NotificationHandler {
     fun requestDate(currentDate: NotificationDate, getDate:(notificationDate: NotificationDate) -> Unit)
     fun requestTime(currentTime: NotificationTime, getTime:(notificationTime: NotificationTime) -> Unit)
     fun requestText(currentText: String, getText:(text: String) -> Unit)
-    fun update(newNotification: Notification, currentNotification: Notification)
-    fun save(notification: Notification)
-    fun delete(notification: Notification)
+    fun updateNotification(newNotification: Notification, currentNotification: Notification)
+    fun saveNotification(notification: Notification)
+    fun deleteNotification(notification: Notification)
 }

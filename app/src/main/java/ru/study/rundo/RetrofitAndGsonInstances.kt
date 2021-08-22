@@ -7,7 +7,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import ru.study.rundo.interfaces.ServerApi
 
-object SingletonClass {
+object RetrofitAndGsonInstances {
     val retrofit: ServerApi
     val gson: Gson
     private const val URL = "https://pub.zame-dev.org/senla-training-addition/"
