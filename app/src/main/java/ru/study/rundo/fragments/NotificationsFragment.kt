@@ -64,7 +64,7 @@ class NotificationsFragment : Fragment() {
     override fun onStop() {
         super.onStop()
         if (activity != null) {
-            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
         }
     }
 
