@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    tools:context=".fragments.RunFragmentResult">
+
+    <TextView
+        android:id="@+id/distance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/distance"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:padding="@dimen/bordersBetweenElements"
+        app:layout_constraintBottom_toTopOf="@id/toMainPage"
+        />
+
+    <TextView
+        android:id="@+id/distanceDetails"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toEndOf="@id/distance"
+        app:layout_constraintTop_toTopOf="@id/distance"
+        app:layout_constraintBottom_toBottomOf="@id/distance"
+        />
+
+    <TextView
+        android:id="@+id/time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/time"
+        app:layout_constraintEnd_toStartOf="@id/timeDetails"
+        app:layout_constraintBottom_toBottomOf="@id/timeDetails"
+        app:layout_constraintTop_toTopOf="@id/timeDetails"
+        />
+
+    <TextView
+        android:id="@+id/timeDetails"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/toMainPage"
+        android:padding="@dimen/bordersBetweenElements"
+        />
+
+    <Button
+        android:id="@+id/toMainPage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/toMainPage"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toMainPage"/>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

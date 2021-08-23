@@ -1,0 +1,24 @@
+<resources>
+    <!--
+    TODO: Before you run your application, you need a Google Maps API key.
+
+    To get one, follow this link, follow the directions and press "Create" at the end:
+
+    https://console.developers.google.com/flows/enableapi?apiid=maps_android_backend&keyType=CLIENT_SIDE_ANDROID&r=98:0E:D3:59:6A:D6:43:E7:55:C3:32:A3:C1:CA:CD:22:9B:B1:45:51%3Bru.study.rundo.fragments
+
+    You can also add your credentials to an existing key, using these values:
+
+    Package name:
+    ru.study.rundo
+
+    SHA-1 certificate fingerprint:
+    98:0E:D3:59:6A:D6:43:E7:55:C3:32:A3:C1:CA:CD:22:9B:B1:45:51
+
+    Alternatively, follow the directions here:
+    https://developers.google.com/maps/documentation/android/start#get-key
+
+    Once you have your key (it starts with "AIza"), replace the "google_maps_key"
+    string in this file.
+    -->
+    <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">AIzaSyBJ1J9Mae3PuDqIEfyjqi1BWKvKjEOkbnU</string>
+</resources>
